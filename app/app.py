@@ -3,7 +3,7 @@ from nucleidechartlib import load_elements_csv, gen_chart
 
 app = Flask(__name__)
 
-@app.route('/generar_tabla', methods=['POST'])
+@app.route('/', methods=['POST'])
 def generar_tabla():
     data = {}
     if request.json:
