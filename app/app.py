@@ -1,57 +1,110 @@
-from flask import Flask, request, send_file, jsonify
-from nucleidechartlib import load_elements_csv, gen_chart
-import tempfile
+from flask import Flask, request, send_file, jsonify, send_from_directory
+from nucleidechartlib import load_element_csv, load_elements_csv, gen_chart, gen_element
 import json
-
+import uuid
+import os
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
-default_source_file = "assets/source.csv"
-@app.route('/', methods=['POST'])
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '..', 'tmp')
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+@app.route('/gen_table/', methods=['POST'])
 def generar_tabla():
+    requestID = request.form.get('sessionID', uuid.uuid4().hex)
+    files = request.files
 
-    source_file = default_source_file
-
-    if 'source' in request.files:
-        temp_source_file = tempfile.NamedTemporaryFile(delete=False, suffix='.csv', dir='/tmp')
-        temp_source_file.write(request.files['source'].read())
-        temp_source_file_path = temp_source_file.name
-        temp_source_file.close()  # Cerrar el archivo para que pueda ser escrito por gen_chart
-        source_file = temp_source_file_path
-
-
-
-    # Cargar elementos desde el archivo CSV
-    elements = load_elements_csv(source_file)
-
+    division = request.form.get('division', "")
+    detail = request.form.get('detail', "")
     config = {}
-
-    if 'config' in request.files:
-        json_file = request.files['config']
-
-        config = json.load(json_file)
-    else:
-        if 'division' in request.fields and 'detail' in request.fields:
-            config_name=request.fields['division']+'_'+request.fields['detail']
-
-
-
     style = "None"
 
-    if 'style' in request.files:
-        style = request.files['style']
+    try:
+        source_file = os.path.join(UPLOAD_FOLDER, f"{requestID}.csv")
+        if 'source' in files:
+            with open(source_file, 'wb') as f:
+                f.write(files['source'].read())
+        if not os.path.exists(source_file):
+            source_file = os.path.join(UPLOAD_FOLDER, 'default.csv')
 
-    # Crear un archivo temporal en /tmp con un nombre único
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.svg', dir='/tmp')
-    temp_file_path =temp_file.name
-    temp_file.close()  # Cerrar el archivo para que pueda ser escrito por gen_chart
+        elements = load_elements_csv(source_file)
 
-    # Generar la tabla y guardar el archivo en el archivo temporal
-    gen_chart(elements, output=temp_file_path, config=config, style=style)
+        if 'config' in files:
+            config = json.load(files['config'])
 
-    print("Created chart "+temp_file_path)
-    # Enviar el archivo temporal como respuesta
-    return send_file(temp_file_path, as_attachment=True)
+        if 'style' in files:
+            style = files['style']
+
+        temp_file_path = os.path.join(UPLOAD_FOLDER, f"table_{requestID}.svg")
+        gen_chart(elements, output=temp_file_path, config=config, style=style)
+
+        return send_file(temp_file_path, as_attachment=True)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/get_config/', methods=['POST'])
+def check_config():
+    requestID = request.form.get('sessionID', uuid.uuid4().hex)
+    files = request.files
+
+    try:
+        if 'config' in files:
+            config_path = os.path.join(UPLOAD_FOLDER, f"{requestID}.json")
+            with open(config_path, 'wb') as f:
+                f.write(files['config'].read())
+            return send_file(config_path, as_attachment=True)
+        else:
+            return jsonify({"error": "No config file provided"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route('/gen_element_box/', methods=['POST'])
+def generar_element_box():
+    requestID = request.form.get('sessionID', uuid.uuid4().hex)
+    print(requestID)
+    files = request.files
+
+    element_name = request.form.get('element_box', '1H')
+
+    try:
+        source_file = os.path.join(UPLOAD_FOLDER, f"{requestID}.csv")
+        if 'source' in files:
+            with open(source_file, 'wb') as f:
+                f.write(files['source'].read())
+        if not os.path.exists(source_file):
+            source_file = os.path.join(UPLOAD_FOLDER, 'default.csv')
+
+        element = load_element_csv(source_file, element_name)
+
+        print("element")
+        config = {}
+        if 'config' in files:
+            config = json.load(files['config'])
+
+        temp_file_path = os.path.join(UPLOAD_FOLDER, f"box_{requestID}.svg")
+        gen_element(element, temp_file_path, config)
+
+        return send_file(temp_file_path, as_attachment=True)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+
+
+# Ruta al archivo OpenAPI
+SWAGGER_PATH = os.path.join(os.path.dirname(__file__), '../docs', 'openapi.yaml')
+
+@app.route('/swagger.json/')
+def swagger_json():
+    return send_from_directory(directory='../docs', path='openapi.yaml')
+
+@app.route('/swagger-ui/')
+def swagger_ui():
+    return send_from_directory(directory='../docs', path='index.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

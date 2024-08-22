@@ -1,0 +1,101 @@
+openapi: 3.0.0
+info:
+  title: Nucleide Chart Generator API
+  description: API para generar tablas y cajas de elementos a partir de archivos CSV y JSON.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+paths:
+  /gen_table/:
+    post:
+      summary: Genera una tabla a partir de un archivo CSV y opcionalmente una configuración JSON.
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                sessionID:
+                  type: string
+                  description: ID de sesión único.
+                source:
+                  type: string
+                  format: binary
+                  description: Archivo CSV que contiene los datos.
+                config:
+                  type: string
+                  format: binary
+                  description: Archivo JSON opcional para la configuración.
+                style:
+                  type: string
+                  format: binary
+                  description: Archivo de estilo opcional.
+      responses:
+        '200':
+          description: Archivo SVG generado exitosamente.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Error en la solicitud.
+  /get_config/:
+    post:
+      summary: Obtiene un archivo de configuración JSON.
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                sessionID:
+                  type: string
+                  description: ID de sesión único.
+                config:
+                  type: string
+                  format: binary
+                  description: Archivo JSON que se cargará y se devolverá.
+      responses:
+        '200':
+          description: Archivo JSON de configuración generado exitosamente.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Error en la solicitud.
+  /gen_element_box/:
+    post:
+      summary: Genera una caja de elemento a partir de un archivo CSV y opcionalmente una configuración JSON.
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                sessionID:
+                  type: string
+                  description: ID de sesión único.
+                element_box:
+                  type: string
+                  description: Nombre del elemento a generar.
+                source:
+                  type: string
+                  format: binary
+                  description: Archivo CSV que contiene los datos.
+                config:
+                  type: string
+                  format: binary
+                  description: Archivo JSON opcional para la configuración.
+      responses:
+        '200':
+          description: Archivo SVG generado exitosamente.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Error en la solicitud.
