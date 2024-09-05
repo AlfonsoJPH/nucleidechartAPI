@@ -1,5 +1,5 @@
 from flask import Flask, request, send_file, jsonify, send_from_directory
-from nucleidechartlib import load_element_csv, load_elements_csv, gen_chart, gen_element
+from nucleidechartlib import load_element_csv, load_elements_csv, gen_chart, gen_element, fix_config
 import json
 import uuid
 import os
@@ -17,8 +17,6 @@ def generar_tabla():
     requestID = request.form.get('sessionID', uuid.uuid4().hex)
     files = request.files
 
-    division = request.form.get('division', "")
-    detail = request.form.get('detail', "")
     config = {}
     style = "None"
 
@@ -34,6 +32,7 @@ def generar_tabla():
 
         if 'config' in files:
             config = json.load(files['config'])
+            config = fix_config(config)
 
         if 'style' in files:
             style = files['style']
@@ -53,9 +52,12 @@ def check_config():
 
     try:
         if 'config' in files:
+            config = files['config']
+            config = json.load(files['config'])
+            config = fix_config(config)
             config_path = os.path.join(UPLOAD_FOLDER, f"{requestID}.json")
-            with open(config_path, 'wb') as f:
-                f.write(files['config'].read())
+            with open(config_path, 'w') as f:
+                json.dump(config, f)
             return send_file(config_path, as_attachment=True)
         else:
             return jsonify({"error": "No config file provided"}), 400
@@ -84,6 +86,7 @@ def generar_element_box():
         config = {}
         if 'config' in files:
             config = json.load(files['config'])
+            config = fix_config(config)
 
         temp_file_path = os.path.join(UPLOAD_FOLDER, f"box_{requestID}.svg")
         gen_element(element, temp_file_path, config)
