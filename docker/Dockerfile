@@ -7,14 +7,18 @@ WORKDIR /usr/src
 # Instalar dependencias del sistema necesarias
 RUN apt-get update && apt-get install -y git
 
+# Configurar las credenciales para GitLab usando ARG
+ARG GITLAB_TOKEN
+
 # Clonar la librería nucleidechartlib
-RUN git clone https://github.com/AlfonsoJPH/nucleidechartlib.git
+
+RUN git clone https://alfonsojph786:${GITLAB_TOKEN}/alfonsojph786/nucleidechartlib.git
 
 # Instalar la librería nucleidechartlib
 RUN pip install ./nucleidechartlib
 
 # Clonar el repositorio nucleidechartAPI
-RUN git clone https://github.com/AlfonsoJPH/nucleidechartAPI.git
+RUN git clone https://git.granasat.space/alfonsojph786/nucleidechartAPI.git
 
 # Instalar las dependencias de Python
 RUN pip install --no-cache-dir -r ./nucleidechartAPI/requirements.txt

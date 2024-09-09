@@ -1,11 +1,13 @@
-version: '3.8'
-
 services:
   nucleide-chart-api:
     build:
       context: ./
       dockerfile: Dockerfile
+      args:
+        GITLAB_TOKEN: ${GITLAB_TOKEN}  # Usa la variable de entorno para el token
     ports:
       - '5000:5000'
+    environment:
+      - GITLAB_TOKEN=${GITLAB_TOKEN}  # Proporciona el token como variable de entorno
     volumes:
-      - .:/usr/src/backend
+      - .:/usr/src
